@@ -1,0 +1,15 @@
+{
+  "name": "@a2m8/module-calling",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@a2m8/integration-vapi": "*",
+    "@a2m8/ui": "*"
+  },
+  "peerDependencies": {
+    "next": "*",
+    "react": "*"
+  }
+}

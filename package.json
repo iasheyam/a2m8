@@ -1,26 +1,16 @@
 {
-  "name": "a2m8.ai",
-  "version": "0.1.0",
+  "name": "a2m8",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/ui",
+    "packages/modules/*",
+    "packages/integrations/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.1.1",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.1",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "dev": "npm run dev --workspace @a2m8/web",
+    "build": "npm run build --workspace @a2m8/web",
+    "start": "npm run start --workspace @a2m8/web",
+    "lint": "npm run lint --workspace @a2m8/web"
   }
 }

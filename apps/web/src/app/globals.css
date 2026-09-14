@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* Tailwind's content scan stops at this package's own boundary. Feature
+   modules live in packages/modules/*, packages/integrations/* and
+   packages/ui, and are pulled in via transpilePackages, so their class
+   names need to be scanned explicitly here too. */
+@source "../../../../packages/modules";
+@source "../../../../packages/integrations";
+@source "../../../../packages/ui";
+
+/* Design system tokens — see CLAUDE.md and the design-system skill.
+   Everything here configures Tailwind's own utility generation; there is
+   no hand-written CSS anywhere in this file. */
+@theme {
+  /* surfaces */
+  --color-paper: #EDEFEC;
+  --color-card: #FFFFFF;
+  --color-sunken: #F5F6F4;
+
+  /* ink */
+  --color-ink: #111C20;
+  --color-ink-2: #3F4E54;
+  --color-ink-3: #75868C;
+
+  /* accent — deep pine, the only brand colour */
+  --color-pine: #16554A;
+  --color-pine-2: #1E7263;
+  --color-pine-soft: #E4EDEA;
+
+  /* status */
+  --color-amber: #8A6210;
+  --color-amber-soft: #FAF3E4;
+  --color-red: #9B2C2C;
+  --color-red-soft: #FAE9E9;
+
+  /* lines */
+  --color-line: rgba(17, 28, 32, .15);
+  --color-line-2: rgba(17, 28, 32, .08);
+
+  /* radius — small and consistent, never pill except chips */
+  --radius-sm: 3px;
+  --radius: 5px;
+  --radius-lg: 7px;
+
+  /* elevation — overlays only */
+  --shadow: 0 6px 20px rgba(17, 28, 32, .14);
+  --shadow-lg: 0 14px 44px rgba(17, 28, 32, .22);
+
+  /* type */
+  --font-display: var(--font-display-family), Impact, sans-serif;
+  --font-body: var(--font-body-family), system-ui, sans-serif;
+  --font-mono: var(--font-mono-family), ui-monospace, monospace;
+}
