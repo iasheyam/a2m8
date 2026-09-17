@@ -2,7 +2,27 @@
 // extraction, once that ships) or be set by hand. Never write a manual edit
 // into the same store an extraction writes to — see ContactFact vs
 // ContactOverride below. Tags are manual-only, so they live outside this set.
-export type ContactField = "name" | "company" | "phone" | "email" | "type";
+export type ContactField =
+  | "firstName"
+  | "lastName"
+  | "jobTitle"
+  | "company"
+  | "department"
+  | "email"
+  | "secondaryEmail"
+  | "phone"
+  | "mobilePhone"
+  | "website"
+  | "linkedinUrl"
+  | "street"
+  | "city"
+  | "state"
+  | "postalCode"
+  | "country"
+  | "type"
+  | "status"
+  | "source"
+  | "summary";
 
 // The identity row. Everything else about a contact is derived at read time
 // from facts + overrides + tags, keyed off this id.
@@ -34,11 +54,30 @@ export type ContactOverride = {
 // The read-time merge that the rest of the app actually consumes.
 export type Contact = {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  jobTitle: string;
   company: string;
-  phone: string;
+  department: string;
   email: string;
+  secondaryEmail: string;
+  phone: string;
+  mobilePhone: string;
+  website: string;
+  linkedinUrl: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
   type: string;
+  status: string;
+  source: string;
+  summary: string;
   tags: string[];
   createdAt: string;
 };
+
+export function contactDisplayName(contact: Pick<Contact, "firstName" | "lastName">): string {
+  return `${contact.firstName} ${contact.lastName}`.trim();
+}

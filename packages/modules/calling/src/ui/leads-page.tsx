@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, PageTitle, StatusPill, XIcon } from "@a2m8/ui";
+import { Button, Card, PageTitle, SearchSelect, StatusPill, XIcon } from "@a2m8/ui";
 import { getCallingContacts, saveCallingContacts } from "../lib/calling-contacts";
-import { getSettings } from "../lib/settings";
+import { getApiKeyCredentials } from "@a2m8/module-integrations";
 import { addCallLog } from "../lib/call-logs";
-import { SearchSelect } from "./search-select";
 import { formatPhoneE164 } from "../lib/phone";
 import type { CallingContact } from "../types/calling-contact";
 
@@ -115,7 +114,7 @@ export function LeadsPage() {
       const res = await fetch("/api/call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: contact.phone, name: contact.name, company: contact.company, ...getSettings() }),
+        body: JSON.stringify({ phone: contact.phone, name: contact.name, company: contact.company, ...getApiKeyCredentials() }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -149,6 +148,7 @@ export function LeadsPage() {
           options={col.options}
           onChange={onChange}
           placeholder="Type"
+          variant="cell"
         />
       );
     }

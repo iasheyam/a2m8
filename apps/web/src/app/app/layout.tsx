@@ -33,17 +33,12 @@ const featureSections: NavSection[] = [
   },
 ];
 
-// Not a product feature module — cross-cutting account-level settings that
-// exist regardless of which feature modules are enabled for an org.
-const accountsSection: NavSection = {
-  label: "Accounts",
-  items: [
-    { href: "/app/settings", label: "Settings", abbr: "S" },
-  ],
-};
+// Cross-cutting sections — not product feature modules, always visible
+// regardless of which feature modules are enabled for an org. Rendered
+// below the feature sections, in this order, with Accounts last.
 
 // Always visible — this is the panel that controls the feature toggles
-// below, so it can never be switched off from within itself.
+// above, so it can never be switched off from within itself.
 const adminSection: NavSection = {
   label: "Admin",
   items: [
@@ -51,7 +46,17 @@ const adminSection: NavSection = {
   ],
 };
 
-const allSections = [...featureSections, accountsSection, adminSection];
+const accountsSection: NavSection = {
+  label: "Accounts",
+  items: [
+    { href: "/app/settings", label: "Settings", abbr: "S" },
+    { href: "/app/connections", label: "Connections", abbr: "Cn" },
+    { href: "/app/integrations", label: "Integrations", abbr: "In" },
+  ],
+};
+
+const bottomSections = [adminSection, accountsSection];
+const allSections = [...featureSections, ...bottomSections];
 
 function activeLabel(pathname: string): string {
   for (const section of allSections) {
@@ -188,20 +193,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           ))}
 
           <div className="mt-auto pt-4 border-t border-white/10">
-            <NavSectionBlock
-              section={accountsSection}
-              collapsed={collapsed}
-              open={collapsed || openSections.has(accountsSection.label)}
-              onToggle={() => toggleSection(accountsSection.label)}
-              pathname={pathname}
-            />
-            <NavSectionBlock
-              section={adminSection}
-              collapsed={collapsed}
-              open={collapsed || openSections.has(adminSection.label)}
-              onToggle={() => toggleSection(adminSection.label)}
-              pathname={pathname}
-            />
+            {bottomSections.map((section) => (
+              <NavSectionBlock
+                key={section.label}
+                section={section}
+                collapsed={collapsed}
+                open={collapsed || openSections.has(section.label)}
+                onToggle={() => toggleSection(section.label)}
+                pathname={pathname}
+              />
+            ))}
           </div>
         </nav>
       </aside>

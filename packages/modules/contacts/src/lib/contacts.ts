@@ -52,11 +52,26 @@ function saveTagsMap(map: Record<string, string[]>): void {
 }
 
 const FIELD_DEFAULTS: Record<ContactField, string> = {
-  name: "",
+  firstName: "",
+  lastName: "",
+  jobTitle: "",
   company: "",
-  phone: "",
+  department: "",
   email: "",
+  secondaryEmail: "",
+  phone: "",
+  mobilePhone: "",
+  website: "",
+  linkedinUrl: "",
+  street: "",
+  city: "",
+  state: "",
+  postalCode: "",
+  country: "",
   type: "",
+  status: "",
+  source: "",
+  summary: "",
 };
 
 // A manual override always wins over an extracted fact for the same field,
@@ -77,50 +92,41 @@ function resolveField(
   return latestFact?.value ?? FIELD_DEFAULTS[field];
 }
 
+const ALL_FIELDS = Object.keys(FIELD_DEFAULTS) as ContactField[];
+
 export function getContacts(): Contact[] {
   const records = getRecords();
   const facts = getFacts();
   const overrides = getOverrides();
   const tagsMap = getTagsMap();
 
-  return records.map((r) => ({
-    id: r.id,
-    name: resolveField(r.id, "name", facts, overrides),
-    company: resolveField(r.id, "company", facts, overrides),
-    phone: resolveField(r.id, "phone", facts, overrides),
-    email: resolveField(r.id, "email", facts, overrides),
-    type: resolveField(r.id, "type", facts, overrides),
-    tags: tagsMap[r.id] ?? [],
-    createdAt: r.createdAt,
-  }));
+  return records.map((r) => {
+    const resolved = Object.fromEntries(
+      ALL_FIELDS.map((field) => [field, resolveField(r.id, field, facts, overrides)])
+    ) as Record<ContactField, string>;
+
+    return {
+      id: r.id,
+      ...resolved,
+      tags: tagsMap[r.id] ?? [],
+      createdAt: r.createdAt,
+    };
+  });
 }
 
 export function getContact(id: string): Contact | undefined {
   return getContacts().find((c) => c.id === id);
 }
 
-export function createContact(input: {
-  name: string;
-  company?: string;
-  phone?: string;
-  email?: string;
-  type?: string;
-}): Contact {
+export function createContact(input: Partial<Record<ContactField, string>>): Contact {
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
   write(RECORDS_KEY, [...getRecords(), { id, createdAt }]);
 
   const now = new Date().toISOString();
-  const fields: [ContactField, string | undefined][] = [
-    ["name", input.name],
-    ["company", input.company],
-    ["phone", input.phone],
-    ["email", input.email],
-    ["type", input.type],
-  ];
-  const newOverrides: ContactOverride[] = fields
-    .filter((entry): entry is [ContactField, string] => !!entry[1])
-    .map(([field, value]) => ({ contactId: id, field, value, updatedAt: now }));
+  const newOverrides: ContactOverride[] = ALL_FIELDS
+    .filter((field) => !!input[field]?.trim())
+    .map((field) => ({ contactId: id, field, value: input[field]!.trim(), updatedAt: now }));
   write(OVERRIDES_KEY, [...getOverrides(), ...newOverrides]);
 
   return getContact(id)!;
@@ -133,6 +139,17 @@ export function updateContactField(contactId: string, field: ContactField, value
     (o) => !(o.contactId === contactId && o.field === field)
   );
   overrides.push({ contactId, field, value, updatedAt: new Date().toISOString() });
+  write(OVERRIDES_KEY, overrides);
+}
+
+export function updateContactFields(contactId: string, fields: Partial<Record<ContactField, string>>): void {
+  const now = new Date().toISOString();
+  const overrides = getOverrides().filter(
+    (o) => !(o.contactId === contactId && o.field in fields)
+  );
+  for (const field of Object.keys(fields) as ContactField[]) {
+    overrides.push({ contactId, field, value: fields[field] ?? "", updatedAt: now });
+  }
   write(OVERRIDES_KEY, overrides);
 }
 

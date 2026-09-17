@@ -7,9 +7,12 @@ type Props = {
   options: string[];
   onChange: (value: string) => void;
   placeholder?: string;
+  /** "cell" = borderless, for an inline table cell. "field" = bordered, like Input. */
+  variant?: "cell" | "field";
+  className?: string;
 };
 
-export function SearchSelect({ value, options, onChange, placeholder }: Props) {
+export function SearchSelect({ value, options, onChange, placeholder, variant = "field", className = "" }: Props) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
@@ -49,8 +52,13 @@ export function SearchSelect({ value, options, onChange, placeholder }: Props) {
     }
   }
 
+  const inputClass =
+    variant === "field"
+      ? "bg-card border border-line rounded-sm px-3 py-2 text-[13px] text-ink placeholder:text-ink-3 focus:outline-none focus:border-pine transition-colors"
+      : "bg-transparent rounded-sm px-2 py-1.5 text-[13px] text-ink focus:outline-none focus:ring-1 focus:ring-pine hover:bg-sunken transition-colors placeholder:text-ink-3";
+
   return (
-    <div className="relative w-full">
+    <div className={`relative w-full ${className}`}>
       <input
         type="text"
         value={open ? query : value}
@@ -59,7 +67,7 @@ export function SearchSelect({ value, options, onChange, placeholder }: Props) {
         onFocus={() => setOpen(true)}
         onBlur={() => { setOpen(false); setQuery(""); }}
         onKeyDown={handleKeyDown}
-        className="w-full bg-transparent text-ink text-[13px] px-2 py-1.5 rounded-sm focus:outline-none focus:ring-1 focus:ring-pine hover:bg-sunken transition-colors placeholder:text-ink-3"
+        className={`w-full ${inputClass}`}
       />
 
       {open && filtered.length > 0 && (

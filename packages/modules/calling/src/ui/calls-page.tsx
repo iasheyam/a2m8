@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button, Card, ChevronDownIcon, ChevronRightIcon, PageTitle, StatusPill, XIcon } from "@a2m8/ui";
 import { getCallLogs, updateCallOutcome, updateCallLogs } from "../lib/call-logs";
-import { getSettings } from "../lib/settings";
+import { getApiKeyCredentials } from "@a2m8/module-integrations";
 import type { CallLog, CallOutcome } from "../types/call-log";
 
 type OutcomeStatus = "pine" | "amber" | "red" | "neutral";
@@ -65,7 +65,7 @@ export function CallsPage() {
   async function handleRefresh() {
     setRefreshing(true);
     setError(null);
-    const { vapiApiKey } = getSettings();
+    const { vapiApiKey } = getApiKeyCredentials();
     const toFetch = logs.filter((l) => l.vapiCallId && !l.polled);
 
     try {

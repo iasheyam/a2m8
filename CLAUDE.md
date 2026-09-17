@@ -236,8 +236,9 @@ never carries model cost risk on its own books.
 
 - Encrypted with KMS, decrypted in memory at call time. **Never logged, never returned
   to the client, never written to disk.** No reveal endpoint.
-- **Entered self-serve in Settings** and verified on save with a minimal live call — no
-  hand insertion, this has to work for every org from the first day it exists.
+- **Entered self-serve in Integrations** (not Settings — see Web app scope) and
+  verified on save with a minimal live call — no hand insertion, this has to work
+  for every org from the first day it exists.
 - One active key per org for now. Rotation and multiple keys are deferred.
 
 When an org's key fails — invalid, rate limited, spend cap — that org's ingestion
@@ -647,8 +648,12 @@ branching on belongs in the database.
 4. Missing-documents report
 5. Entities — list, edit, aliases, type
 6. Calling — campaigns, leads, call logs
-7. Settings — integration health, Anthropic key, team & invitations, plan/billing,
-   usage visibility, export
+7. Connections — OAuth accounts a2m8 brokers on the org's behalf (Microsoft today)
+8. Integrations — bring-your-own-key credentials for third-party services (Vapi,
+   Anthropic) — a separate menu from Connections since the trust model differs:
+   a2m8 never sees an OAuth password, but a pasted API key passes through its hands
+9. Settings — team & invitations, plan/billing, usage visibility, export. Nothing
+   lives here until one of those exists
 
 Documents, Q&A and capture live in Telegram. **Do not build a document browser.**
 

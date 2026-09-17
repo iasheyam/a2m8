@@ -1,13 +1,32 @@
-import type { Contact } from "../types/contact";
+import { contactDisplayName, type Contact } from "../types/contact";
 
 export function exportContactsCsv(contacts: Contact[]): void {
-  const headers = ["Name", "Company", "Phone", "Email", "Type", "Tags", "Created"];
+  const headers = [
+    "Name", "Job Title", "Company", "Department",
+    "Email", "Secondary Email", "Work Phone", "Mobile Phone", "Website", "LinkedIn",
+    "Street", "City", "State", "Postal Code", "Country",
+    "Type", "Status", "Source", "Summary", "Tags", "Created",
+  ];
   const rows = contacts.map((c) => [
-    c.name,
+    contactDisplayName(c),
+    c.jobTitle,
     c.company,
-    c.phone,
+    c.department,
     c.email,
+    c.secondaryEmail,
+    c.phone,
+    c.mobilePhone,
+    c.website,
+    c.linkedinUrl,
+    c.street,
+    c.city,
+    c.state,
+    c.postalCode,
+    c.country,
     c.type,
+    c.status,
+    c.source,
+    c.summary,
     c.tags.join("; "),
     c.createdAt,
   ]);

@@ -3,23 +3,37 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Card, Chip, ChevronLeftIcon, Input, PageTitle, XIcon } from "@a2m8/ui";
-import { getContact, setContactTags, updateContactField } from "../lib/contacts";
+import { getContact, setContactTags } from "../lib/contacts";
 import {
   addContactEvent,
   deleteContactEvent,
   getContactEvents,
   toggleReminderComplete,
 } from "../lib/contact-events";
-import type { Contact, ContactField } from "../types/contact";
+import { contactDisplayName, type Contact } from "../types/contact";
 import type { ContactEvent } from "../types/contact-event";
+import { ContactEditPanel } from "./contact-edit-panel";
+import { NotesSection } from "./notes-section";
 
-const FIELDS: { key: ContactField; label: string; type: string }[] = [
-  { key: "name",    label: "Name",    type: "text"  },
-  { key: "company", label: "Company", type: "text"  },
-  { key: "phone",   label: "Phone",   type: "text"  },
-  { key: "email",   label: "Email",   type: "email" },
-  { key: "type",    label: "Type",    type: "text"  },
-];
+function InfoField({ label, value }: { label: string; value?: string }) {
+  return (
+    <div>
+      <p className="font-mono text-[10.5px] font-semibold uppercase tracking-wider text-ink-3 mb-0.5">{label}</p>
+      <p className="text-sm text-ink">{value?.trim() ? value : <span className="text-ink-3">—</span>}</p>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-6 last:mb-0">
+      <p className="font-display text-base font-semibold uppercase tracking-wide text-ink-2 mb-3 pb-2 border-b border-line-2">
+        {title}
+      </p>
+      <div className="grid grid-cols-2 gap-4">{children}</div>
+    </div>
+  );
+}
 
 export function ContactDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -27,25 +41,24 @@ export function ContactDetailPage() {
 
   const [contact, setContact] = useState<Contact | null>(null);
   const [events, setEvents] = useState<ContactEvent[]>([]);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [tagDraft, setTagDraft] = useState("");
-  const [noteDraft, setNoteDraft] = useState("");
   const [reminderDraft, setReminderDraft] = useState("");
   const [reminderDue, setReminderDue] = useState("");
 
-  useEffect(() => {
+  function refresh() {
     const c = getContact(id);
     if (!c) { router.replace("/app/crm/contacts"); return; }
     setContact(c);
     setEvents(getContactEvents(id));
-  }, [id, router]);
+  }
+
+  useEffect(() => {
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   if (!contact) return null;
-
-  function updateField(field: ContactField, value: string) {
-    if (!contact) return;
-    updateContactField(contact.id, field, value);
-    setContact(getContact(contact.id) ?? null);
-  }
 
   function addTag() {
     if (!tagDraft.trim() || !contact) return;
@@ -60,13 +73,6 @@ export function ContactDetailPage() {
     const tags = contact.tags.filter((t) => t !== tag);
     setContactTags(contact.id, tags);
     setContact({ ...contact, tags });
-  }
-
-  function addNote() {
-    if (!noteDraft.trim() || !contact) return;
-    addContactEvent({ contactId: contact.id, kind: "note", text: noteDraft.trim() });
-    setEvents(getContactEvents(contact.id));
-    setNoteDraft("");
   }
 
   function addReminder() {
@@ -95,7 +101,9 @@ export function ContactDetailPage() {
   }
 
   const reminders = events.filter((e) => e.kind === "reminder");
-  const notes = events.filter((e) => e.kind === "note");
+  const address = [contact.street, [contact.city, contact.state].filter(Boolean).join(", "), contact.postalCode, contact.country]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="max-w-3xl">
@@ -106,24 +114,43 @@ export function ContactDetailPage() {
         <ChevronLeftIcon className="w-3.5 h-3.5" /> Contacts
       </button>
 
-      <PageTitle className="mb-6">{contact.name || "Untitled contact"}</PageTitle>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <PageTitle>{contactDisplayName(contact) || "Untitled contact"}</PageTitle>
+          {contact.jobTitle && <p className="text-ink-3 text-sm mt-1">{contact.jobTitle}{contact.company ? ` at ${contact.company}` : ""}</p>}
+        </div>
+        <Button variant="primary" onClick={() => setPanelOpen(true)}>Edit</Button>
+      </div>
 
       <Card className="mb-8">
-        <div className="grid grid-cols-2 gap-4">
-          {FIELDS.map((f) => (
-            <div key={f.key}>
-              <label className="block font-mono text-[10.5px] font-semibold uppercase tracking-wider text-ink-3 mb-1">
-                {f.label}
-              </label>
-              <Input
-                type={f.type}
-                value={contact[f.key]}
-                onChange={(e) => updateField(f.key, e.target.value)}
-                className="w-full"
-              />
-            </div>
-          ))}
-        </div>
+        <Section title="Contact Info">
+          <InfoField label="Email" value={contact.email} />
+          <InfoField label="Secondary Email" value={contact.secondaryEmail} />
+          <InfoField label="Work Phone" value={contact.phone} />
+          <InfoField label="Mobile Phone" value={contact.mobilePhone} />
+          <InfoField label="Website" value={contact.website} />
+          <InfoField label="LinkedIn" value={contact.linkedinUrl} />
+        </Section>
+
+        <Section title="Address">
+          <div className="col-span-2">
+            <InfoField label="Address" value={address} />
+          </div>
+        </Section>
+
+        <Section title="CRM Details">
+          <InfoField label="Type" value={contact.type} />
+          <InfoField label="Status" value={contact.status} />
+          <InfoField label="Source" value={contact.source} />
+          <InfoField label="Department" value={contact.department} />
+        </Section>
+
+        {contact.summary && (
+          <div>
+            <p className="font-mono text-[10.5px] font-semibold uppercase tracking-wider text-ink-3 mb-1">Summary</p>
+            <p className="text-sm text-ink-2 leading-relaxed">{contact.summary}</p>
+          </div>
+        )}
       </Card>
 
       <div className="mb-8">
@@ -192,39 +219,16 @@ export function ContactDetailPage() {
 
       <div>
         <p className="font-mono text-[10.5px] font-semibold uppercase tracking-wider text-ink-3 mb-2">Notes</p>
-        <div className="space-y-2 mb-3">
-          {notes.map((e) => (
-            <div key={e.id} className="flex items-start justify-between gap-3 rounded border border-line px-3 py-2">
-              <div>
-                <p className="text-sm text-ink-2">{e.text}</p>
-                <p className="font-mono text-[10px] text-ink-3 mt-0.5">
-                  {new Date(e.createdAt).toLocaleString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-              </div>
-              <button onClick={() => removeEvent(e.id)} className="text-ink-3 hover:text-red transition-colors shrink-0">
-                <XIcon className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-          {notes.length === 0 && <p className="text-ink-3 text-xs">No notes yet.</p>}
-        </div>
-        <div className="flex gap-2">
-          <Input
-            type="text"
-            value={noteDraft}
-            onChange={(e) => setNoteDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") addNote(); }}
-            placeholder="Add a note…"
-            className="flex-1"
-          />
-          <Button variant="primary" size="sm" onClick={addNote}>Add</Button>
-        </div>
+        <NotesSection contactId={contact.id} />
       </div>
+
+      <ContactEditPanel
+        open={panelOpen}
+        contactId={contact.id}
+        onClose={() => setPanelOpen(false)}
+        onSaved={refresh}
+        onDeleted={() => router.replace("/app/crm/contacts")}
+      />
     </div>
   );
 }

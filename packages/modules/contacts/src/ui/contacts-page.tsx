@@ -2,28 +2,32 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Button, Card, Input, PageTitle, XIcon } from "@a2m8/ui";
-import { createContact, deleteContact, getContacts, updateContactField } from "../lib/contacts";
+import { Button, Card, ConfirmDialog, Input, PageTitle, PencilIcon, StatusPill, XIcon } from "@a2m8/ui";
+import { deleteContact, getContacts } from "../lib/contacts";
 import { exportContactsCsv } from "../lib/csv-export";
-import type { Contact, ContactField } from "../types/contact";
+import { contactDisplayName, type Contact } from "../types/contact";
+import { ContactEditPanel } from "./contact-edit-panel";
 
-type ColDef = { key: ContactField; label: string; placeholder: string; type: string };
-
-const COLS: ColDef[] = [
-  { key: "name",    label: "Name",    placeholder: "Name *",   type: "text"  },
-  { key: "company", label: "Company", placeholder: "Company",  type: "text"  },
-  { key: "phone",   label: "Phone",   placeholder: "Phone",    type: "text"  },
-  { key: "email",   label: "Email",   placeholder: "Email",    type: "email" },
-  { key: "type",    label: "Type",    placeholder: "Type",     type: "text"  },
-];
-
-const cellClass =
-  "w-full bg-transparent text-ink text-[13px] px-2 py-1.5 rounded-sm focus:outline-none focus:ring-1 focus:ring-pine hover:bg-sunken transition-colors";
+function statusBadge(status: string) {
+  if (status === "Active" || status === "Customer") return <StatusPill status="pine">{status}</StatusPill>;
+  if (status === "Lead" || status === "Prospect") return <StatusPill status="amber">{status}</StatusPill>;
+  if (status === "Churned") return <StatusPill status="red">{status}</StatusPill>;
+  if (status) {
+    return (
+      <span className="inline-flex items-center rounded-xl bg-sunken px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-wider text-ink-2">
+        {status}
+      </span>
+    );
+  }
+  return <span className="text-ink-3 text-xs">—</span>;
+}
 
 export function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState("");
-  const [draft, setDraft] = useState<Partial<Record<ContactField, string>>>({});
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     setContacts(getContacts());
@@ -34,33 +38,31 @@ export function ContactsPage() {
     const q = search.toLowerCase();
     return contacts.filter(
       (c) =>
-        c.name.toLowerCase().includes(q) ||
+        contactDisplayName(c).toLowerCase().includes(q) ||
         c.company.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
         c.tags.some((t) => t.toLowerCase().includes(q))
     );
   }, [contacts, search]);
 
-  function updateField(id: string, field: ContactField, value: string) {
-    updateContactField(id, field, value);
+  function refresh() {
     setContacts(getContacts());
   }
 
   function remove(id: string) {
     deleteContact(id);
-    setContacts(getContacts());
+    if (editingId === id) setPanelOpen(false);
+    refresh();
   }
 
-  function commitDraft() {
-    if (!draft.name?.trim()) return;
-    createContact({
-      name: draft.name.trim(),
-      company: draft.company?.trim(),
-      phone: draft.phone?.trim(),
-      email: draft.email?.trim(),
-      type: draft.type?.trim(),
-    });
-    setContacts(getContacts());
-    setDraft({});
+  function openCreate() {
+    setEditingId(null);
+    setPanelOpen(true);
+  }
+
+  function openEdit(id: string) {
+    setEditingId(id);
+    setPanelOpen(true);
   }
 
   return (
@@ -76,6 +78,7 @@ export function ContactsPage() {
             className="w-64"
           />
           <Button onClick={() => exportContactsCsv(contacts)}>Export CSV</Button>
+          <Button variant="primary" onClick={openCreate}>New Contact</Button>
         </div>
       </div>
 
@@ -83,83 +86,55 @@ export function ContactsPage() {
         <table className="w-full text-[13px] border-collapse">
           <thead>
             <tr className="bg-sunken border-b border-line">
-              {COLS.map((c) => (
+              {["Name", "Company", "Email", "Phone", "Status", "Tags"].map((h) => (
                 <th
-                  key={c.key}
-                  className="text-left px-3 py-2.5 font-mono text-[10px] font-medium text-ink-3 uppercase tracking-wider"
+                  key={h}
+                  className="text-left px-4 py-2.5 font-mono text-[10px] font-medium text-ink-3 uppercase tracking-wider"
                 >
-                  {c.label}
+                  {h}
                 </th>
               ))}
-              <th className="text-left px-3 py-2.5 font-mono text-[10px] font-medium text-ink-3 uppercase tracking-wider">
-                Tags
-              </th>
-              <th className="w-16" />
+              <th className="w-24" />
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line-2">
             {filtered.map((contact) => (
-              <tr
-                key={contact.id}
-                className="group border-b border-line-2 last:border-0 hover:bg-sunken transition-colors"
-              >
-                {COLS.map((col) =>
-                  col.key === "name" ? (
-                    <td key={col.key} className="px-1 py-0.5">
-                      <Link
-                        href={`/app/crm/contacts/${contact.id}`}
-                        className="text-ink font-medium hover:text-pine transition-colors px-2 py-1.5 inline-block"
-                      >
-                        {contact.name || "Untitled"}
-                      </Link>
-                    </td>
-                  ) : (
-                    <td key={col.key} className="px-1 py-0.5">
-                      <input
-                        type={col.type}
-                        value={contact[col.key]}
-                        onChange={(e) => updateField(contact.id, col.key, e.target.value)}
-                        className={cellClass}
-                      />
-                    </td>
-                  )
-                )}
-                <td className="px-3 py-1.5 text-ink-3 text-xs">
+              <tr key={contact.id} className="group hover:bg-sunken transition-colors">
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/app/crm/contacts/${contact.id}`}
+                    className="text-ink font-medium hover:text-pine transition-colors"
+                  >
+                    {contactDisplayName(contact) || "Untitled"}
+                  </Link>
+                  {contact.jobTitle && (
+                    <p className="text-xs text-ink-3 mt-0.5">{contact.jobTitle}</p>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-ink-2">{contact.company || "—"}</td>
+                <td className="px-4 py-3 text-ink-2">{contact.email || "—"}</td>
+                <td className="px-4 py-3 font-mono text-[12px] text-ink-2">{contact.phone || "—"}</td>
+                <td className="px-4 py-3">{statusBadge(contact.status)}</td>
+                <td className="px-4 py-3 text-ink-3 text-xs">
                   {contact.tags.length > 0 ? contact.tags.join(", ") : "—"}
                 </td>
-                <td className="px-2 py-1 text-right">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => remove(contact.id)}
-                    className="opacity-0 group-hover:opacity-100"
-                  >
-                    <XIcon className="w-3 h-3" />
-                  </Button>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button size="sm" aria-label="Edit contact" onClick={() => openEdit(contact.id)}>
+                      <PencilIcon className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      aria-label="Delete contact"
+                      onClick={() => setConfirmDeleteId(contact.id)}
+                    >
+                      <XIcon className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
-
-            <tr
-              className="border-t border-line bg-sunken"
-              onBlur={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget)) commitDraft();
-              }}
-            >
-              {COLS.map((col) => (
-                <td key={col.key} className="px-1 py-0.5">
-                  <input
-                    type={col.type}
-                    value={draft[col.key] ?? ""}
-                    placeholder={col.placeholder}
-                    onChange={(e) => setDraft((d) => ({ ...d, [col.key]: e.target.value }))}
-                    onKeyDown={(e) => { if (e.key === "Enter") commitDraft(); }}
-                    className={`${cellClass} placeholder:text-ink-3`}
-                  />
-                </td>
-              ))}
-              <td colSpan={2} />
-            </tr>
           </tbody>
         </table>
       </Card>
@@ -170,6 +145,29 @@ export function ContactsPage() {
           automatically once Outlook sync is connected.
         </p>
       )}
+
+      <ContactEditPanel
+        open={panelOpen}
+        contactId={editingId}
+        onClose={() => setPanelOpen(false)}
+        onSaved={refresh}
+        onDeleted={() => { setPanelOpen(false); refresh(); }}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="Delete contact?"
+        description={
+          confirmDeleteId
+            ? `This will permanently delete ${
+                contactDisplayName(contacts.find((c) => c.id === confirmDeleteId) ?? { firstName: "", lastName: "" })
+                || "this contact"
+              } and all of their notes and reminders. This can't be undone.`
+            : undefined
+        }
+        onConfirm={() => { if (confirmDeleteId) remove(confirmDeleteId); setConfirmDeleteId(null); }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }
